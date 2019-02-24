@@ -666,6 +666,18 @@ func (t *TemplateGenerator) getTemplateFuncMap(cs *api.ContainerService) templat
 			str += "]"
 			return str
 		},
+		"GetSshPublicKeysPowerShell": func() string {
+			str := ""
+			str += "\"publicKeys\": [ "
+			lastItem := len(cs.Properties.LinuxProfile.SSH.PublicKeys) - 1
+			for i, publicKey := range cs.Properties.LinuxProfile.SSH.PublicKeys {
+				str += "\"" + publicKey.KeyData + "\""
+				if i < lastItem {
+					str += ", "
+				}
+			}
+			return str
+		},
 		"GetKubernetesMasterPreprovisionYaml": func() string {
 			str := ""
 			if cs.Properties.MasterProfile.PreprovisionExtension != nil {
