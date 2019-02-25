@@ -668,7 +668,6 @@ func (t *TemplateGenerator) getTemplateFuncMap(cs *api.ContainerService) templat
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println(string(sshJson))
 			return string(sshJson)
 		},
 		"GetSshPublicKeysPowerShell": func() string {
