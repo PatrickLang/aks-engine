@@ -650,21 +650,16 @@ func (t *TemplateGenerator) getTemplateFuncMap(cs *api.ContainerService) templat
 			//       }
 			//     ]
 			//   }
-			str := ""
-			str += "\"publicKeys\": [ "
-			lastItem := len(cs.Properties.LinuxProfile.SSH.PublicKeys) - 1
-			for i, publicKey := range cs.Properties.LinuxProfile.SSH.PublicKeys {
-				str += "{ "
-				str += "\"keyData\": \"" + strings.TrimSpace(publicKey.KeyData) + "\", "
-				str += "\"path\": \"[variables('sshKeyPath')]\" "
-				if i < lastItem {
-					str += "}, "
-				} else {
-					str += "} "
-				}
+			ssh := SSHPublicKey {
+				PublicKeys = make([]SSHPublicKey,0),
 			}
-			str += "]"
-			return str
+			for i, publicKey := range cs.Properties.LinuxProfile.SSH.PublicKeys {
+				ssh.PublicKeys.append(ssh.PublicKeys, SSHPublicKey {
+					Path: "[variables('sshKeyPath')]",
+					KeyData: strings.TrimSpace(publicKey.KeyData),
+				})
+			}
+			return json.Marshal(ssh)
 		},
 		"GetSshPublicKeysPowerShell": func() string {
 			str := ""
