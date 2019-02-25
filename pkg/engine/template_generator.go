@@ -7,6 +7,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"runtime/debug"
 	"sort"
@@ -20,6 +21,7 @@ import (
 	"github.com/Azure/aks-engine/pkg/api/common"
 	"github.com/Azure/aks-engine/pkg/helpers"
 	"github.com/Azure/aks-engine/pkg/i18n"
+	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -650,16 +652,24 @@ func (t *TemplateGenerator) getTemplateFuncMap(cs *api.ContainerService) templat
 			//       }
 			//     ]
 			//   }
-			ssh := SSHPublicKey {
-				PublicKeys = make([]SSHPublicKey,0),
-			}
-			for i, publicKey := range cs.Properties.LinuxProfile.SSH.PublicKeys {
-				ssh.PublicKeys.append(ssh.PublicKeys, SSHPublicKey {
-					Path: "[variables('sshKeyPath')]",
-					KeyData: strings.TrimSpace(publicKey.KeyData),
+			publicKeyPath := "[variables('sshKeyPath')]"
+			publicKeys := []compute.SSHPublicKey{}
+			for _, publicKey := range cs.Properties.LinuxProfile.SSH.PublicKeys {
+				publicKeyTrimmed := strings.TrimSpace(publicKey.KeyData)
+				publicKeys = append(publicKeys, compute.SSHPublicKey{
+					Path: &publicKeyPath,
+					KeyData: &publicKeyTrimmed,
 				})
 			}
-			return json.Marshal(ssh)
+			ssh := compute.SSHConfiguration {
+				PublicKeys: &publicKeys,
+			}
+			sshJson, err := json.Marshal(ssh)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(sshJson))
+			return string(sshJson)
 		},
 		"GetSshPublicKeysPowerShell": func() string {
 			str := ""
