@@ -11184,7 +11184,7 @@ apt_get_dist_upgrade() {
     apt-get -f -y install
     ! (apt-get dist-upgrade -y 2>&1 | tee $apt_dist_upgrade_output | grep -E "^([WE]:.*)|([eE]rr.*)$") && \
     cat $apt_dist_upgrade_output && break || \
-    cat $apt_update_output
+    cat $apt_dist_upgrade_output
     if [ $i -eq $retries ]; then
       return 1
     else sleep 5
@@ -19254,6 +19254,20 @@ users:
 }
 
 function
+Build-PauseContainer {
+    Param(
+        [Parameter(Mandatory = $true)][string]
+        $WindowsBase
+    )
+    # Future work: This needs to build wincat - see https://github.com/Azure/aks-engine/issues/1461
+    $containerTag = "kubeletwin/pause"
+    "FROM $($WindowsBase)" | Out-File -encoding ascii -FilePath Dockerfile
+    "CMD cmd /c ping -t localhost" | Out-File -encoding ascii -FilePath Dockerfile -Append
+    docker build -t $containerTag .
+    return $containerTag
+}
+
+function
 New-InfraContainer {
     Param(
         [Parameter(Mandatory = $true)][string]
@@ -19261,22 +19275,16 @@ New-InfraContainer {
     )
     cd $KubeDir
     $computerInfo = Get-ComputerInfo
-    $windowsBase = if ($computerInfo.WindowsVersion -eq "1709") {
-        "microsoft/nanoserver:1709"
-    }
-    elseif ($computerInfo.WindowsVersion -eq "1803") {
-        "microsoft/nanoserver:1803"
-    }
-    elseif ($computerInfo.WindowsVersion -eq "1809") {
-        "mcr.microsoft.com/windows/nanoserver:1809"
-    }
-    else {
-        "mcr.microsoft.com/nanoserver-insider"
-    }
 
-    "FROM $($windowsBase)" | Out-File -encoding ascii -FilePath Dockerfile
-    "CMD cmd /c ping -t localhost" | Out-File -encoding ascii -FilePath Dockerfile -Append
-    docker build -t kubletwin/pause .
+    # Reference for these tags: curl -L https://mcr.microsoft.com/v2/k8s/core/pause/tags/list
+    # Then docker run --rm mplatform/manifest-tool inspect mcr.microsoft.com/k8s/core/pause:<tag>
+
+    $windowsBase = switch ($computerInfo.WindowsVersion) {
+        "1803" { "mcr.microsoft.com/k8s/core/pause" }
+        "1809" { "mcr.microsoft.com/k8s/core/pause" }
+        "1903" { Build-PauseContainer -WindowsBase "mcr.microsoft.com/windows/nanoserver:1903" }
+        default { Build-PauseContainer -WindowsBase "mcr.microsoft.com/nanoserver-insider"}
+    }
 }
 
 
@@ -19308,11 +19316,6 @@ Get-KubeBinaries {
         [Parameter(Mandatory = $true)][string]
         $KubeBinariesURL
     )
-
-    if ($computerInfo.WindowsVersion -eq "1709") {
-        Write-Log "Server version 1709 does not support using kubernetes binaries in tar file."
-        return
-    }
 
     $tempdir = New-TemporaryDirectory
     $binaryPackage = "$tempdir\k.tar.gz"
