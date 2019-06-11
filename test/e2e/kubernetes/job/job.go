@@ -4,11 +4,14 @@
 package job
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"os/exec"
 	"regexp"
+	"text/template"
 	"time"
 
 	"github.com/Azure/aks-engine/test/e2e/kubernetes/pod"
@@ -55,6 +58,45 @@ func CreateJobFromFile(filename, name, namespace string) (*Job, error) {
 		return nil, err
 	}
 	return job, nil
+}
+
+// CreateWindowsJobFromTemplate will create a Job from file with a name
+func CreateWindowsJobFromTemplate(filename, name, namespace, servercore string) (*Job, error) {
+	t, err := template.ParseFiles(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	values := map[string]interface{}{
+		"servercore": servercore,
+	}
+
+	tempfile, err := ioutil.TempFile("", "*.yaml")
+	if err != nil {
+		return nil, err
+	}
+
+	w := bufio.NewWriter(tempfile)
+	t.ExecuteTemplate(w, filename, values)
+	w.Flush()
+
+	return CreateJobFromFile(tempfile.Name(), name, namespace)
+}
+
+// CreateWindowsJobFromTemplateDeleteIfExists will create a Job from file, deleting any pre-existing job with the same name
+func CreateWindowsJobFromTemplateDeleteIfExists(filename, name, namespace, servercore string) (*Job, error) {
+	j, err := Get(name, namespace)
+	if err == nil {
+		err := j.Delete(util.DefaultDeleteRetries)
+		if err != nil {
+			return nil, err
+		}
+		_, err = WaitOnDeleted(j.Metadata.Name, j.Metadata.Namespace, 5*time.Second, 1*time.Minute)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return CreateWindowsJobFromTemplate(filename, name, namespace, servercore)
 }
 
 // CreateJobFromFileDeleteIfExists will create a Job from file, deleting any pre-existing job with the same name

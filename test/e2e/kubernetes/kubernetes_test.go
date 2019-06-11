@@ -693,7 +693,7 @@ var _ = Describe("Azure Container Cluster using the Kubernetes Orchestrator", fu
 
 			if eng.HasWindowsAgents() {
 				By("Ensuring that we have functional DNS resolution from a windows container")
-				j, err = job.CreateJobFromFileDeleteIfExists(filepath.Join(WorkloadDir, "validate-dns-windows.yaml"), "validate-dns-windows", "default")
+				j, err = job.CreateJobFromTemplateDeleteIfExists(filepath.Join(WorkloadDir, "validate-dns-windows.yaml"), "validate-dns-windows", "default", windowsImages.ServerCore)
 				Expect(err).NotTo(HaveOccurred())
 				ready, err = j.WaitOnReady(retryTimeWhenWaitingForPodReady, cfg.Timeout)
 				delErr = j.Delete(util.DefaultDeleteRetries)
