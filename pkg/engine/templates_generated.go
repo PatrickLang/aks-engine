@@ -19090,6 +19090,8 @@ Install-OpenSSH {
     Write-Host "Setting required permissions..."
     icacls $adminpath\$adminfile /remove "NT AUTHORITY\Authenticated Users"
     icacls $adminpath\$adminfile /inheritance:r
+    icacls $adminpath\$adminfile /grant SYSTEM:(F)
+    icacls $adminpath\$adminfile /grant BUILTIN\Administrators:(F)
 
     Write-Host "Restarting sshd service..."
     Restart-Service sshd
@@ -19104,7 +19106,8 @@ Install-OpenSSH {
         exit 1
     }
     Write-Host "OpenSSH installed and configured successfully"
-}`)
+}
+`)
 
 func k8sWindowsinstallopensshfuncPs1Bytes() ([]byte, error) {
 	return _k8sWindowsinstallopensshfuncPs1, nil
