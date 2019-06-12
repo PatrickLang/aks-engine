@@ -22,10 +22,10 @@
     "windowsProfile": {
       "adminUsername": "azureuser",
       "adminPassword": "replacepassword1234$",
+      "sshEnabled": "true",
       "windowsPublisher": "MicrosoftWindowsServer",
       "windowsOffer": "WindowsServer",
-      "windowsSku": "Datacenter-Core-1903-with-Containers-smalldisk",
-      "imageVersion": "1903.0.20190603"
+      "windowsSku": "Datacenter-Core-1903-with-Containers-smalldisk"
     },
     "linuxProfile": {
       "adminUsername": "azureuser",
