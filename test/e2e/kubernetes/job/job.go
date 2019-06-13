@@ -65,16 +65,16 @@ func CreateWindowsJobFromTemplate(filename, name, namespace, servercore string) 
 	// create tempfile
 	// tempfilename = tempfilename
 	t, err := template.ParseFiles(filename)
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
 	values := map[string]interface{}{
-        "servercore": servercore,
+		"servercore": servercore,
 	}
-	
+
 	tempfile, err := ioutil.TempFile("", "*.yaml")
-	if (err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -100,7 +100,6 @@ func CreateWindowsJobFromTemplateDeleteIfExists(filename, name, namespace, serve
 	}
 	return CreateWindowsJobFromTemplate(filename, name, namespace, servercore)
 }
-
 
 // CreateJobFromFileDeleteIfExists will create a Job from file, deleting any pre-existing job with the same name
 func CreateJobFromFileDeleteIfExists(filename, name, namespace string) (*Job, error) {
