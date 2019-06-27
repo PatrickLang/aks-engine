@@ -449,6 +449,60 @@ var _ = Describe("Azure Container Cluster using the Kubernetes Orchestrator", fu
 			}
 		})
 
+
+		It("should be able to kubectl port-forward to a running pod on each node", func() {
+			deploymentPrefix := "forwardTest"
+			deploymentName := "forwardDeployTest"
+			deploymentNamespace := "default"
+
+			var deploy *deployment.Deployment
+			var err error
+
+			testPortForward := func() {
+				pods, err := deploy.Pods()
+				Expect(err).NotTo(HaveOccurred())
+				for _, p := range pods {
+					By("Ensuring that the pod is running")
+					running, err := p.WaitOnReady(retryTimeWhenWaitingForPodReady, cfg.Timeout)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(running).To(Equal(true))
+					By("Running kubectl port-forward")
+					fwdCMD := fmt.Sprintf("port-forward %s 8123:80", p.Metadata.Name)
+					proxyCmd := exec.Command("k", fwdCMD)
+					util.PrintCommand(proxyCmd)
+					err = proxyCmd.Start()
+					Expect(err).NotTo(HaveOccurred())
+					defer  func() {
+						proxyCmd.Process.Signal(os.Interrupt)
+						proxyCmd.Wait()
+					}()
+					By("Running curl to access the forwarded port")
+					curlCMD := fmt.Sprintf("--max-time 60 http://%s:%v", "localhost", 8123)
+					cmd := exec.Command("curl", curlCMD)
+					util.PrintCommand(cmd)
+					var out []byte
+					out, err = cmd.CombinedOutput()
+					Expect(err).NotTo(HaveOccurred())
+					log.Printf("%s\n", out)
+				}
+			}
+
+			if eng.AnyAgentIsLinux() {
+				By("Creating a Linux nginx deployment")
+				deploy, err = deployment.CreateLinuxDeployDeleteIfExists(deploymentPrefix, "library/nginx:latest", deploymentName, deploymentNamespace, "")
+				Expect(err).NotTo(HaveOccurred())
+				testPortForward()
+			}
+			if eng.HasWindowsAgents() {
+				By("Creating a Windows IIS deployment")
+				windowsImages, err := eng.GetWindowsTestImages()
+				Expect(err).NotTo(HaveOccurred())
+				deploy, err = deployment.CreateWindowsDeployDeleteIfExist(deploymentPrefix, windowsImages.IIS, deploymentName, deploymentNamespace, "")
+				Expect(err).NotTo(HaveOccurred())
+				testPortForward()
+			}
+		})
+
 		It("should report all nodes in a Ready state", func() {
 			nodeCount := eng.NodeCount()
 			log.Printf("Checking for %d Ready nodes\n", nodeCount)
@@ -1383,7 +1437,7 @@ var _ = Describe("Azure Container Cluster using the Kubernetes Orchestrator", fu
 				deploymentPrefix := fmt.Sprintf("iis-%s", cfg.Name)
 				deploymentName := fmt.Sprintf("%s-%v", deploymentPrefix, r.Intn(99999))
 				By("Creating a deployment with 1 pod running IIS")
-				iisDeploy, err := deployment.CreateWindowsDeployDeleteIfExist(deploymentPrefix, windowsImages.IIS, deploymentName, "default", 80, -1)
+				iisDeploy, err := deployment.CreateWindowsDeployWithHostportDeleteIfExist(deploymentPrefix, windowsImages.IIS, deploymentName, "default", 80, -1)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Waiting on pod to be Ready")
@@ -1491,7 +1545,7 @@ var _ = Describe("Azure Container Cluster using the Kubernetes Orchestrator", fu
 				deploymentPrefix := fmt.Sprintf("iis-dns-%s", cfg.Name)
 				windowsDeploymentName := fmt.Sprintf("%s-%v", deploymentPrefix, r.Intn(99999))
 				By("Creating a deployment running IIS")
-				windowsIISDeployment, err := deployment.CreateWindowsDeployDeleteIfExist(deploymentPrefix, windowsImages.IIS, windowsDeploymentName, "default", 80, -1)
+				windowsIISDeployment, err := deployment.CreateWindowsDeployWithHostportDeleteIfExist(deploymentPrefix, windowsImages.IIS, windowsDeploymentName, "default", 80, -1)
 				Expect(err).NotTo(HaveOccurred())
 
 				deploymentPrefix = fmt.Sprintf("nginx-dns-%s", cfg.Name)
