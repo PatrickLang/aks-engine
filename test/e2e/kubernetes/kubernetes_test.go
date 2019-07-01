@@ -495,11 +495,16 @@ var _ = Describe("Azure Container Cluster using the Kubernetes Orchestrator", fu
 			}
 			if eng.HasWindowsAgents() {
 				By("Creating a Windows IIS deployment")
-				windowsImages, err := eng.GetWindowsTestImages()
-				Expect(err).NotTo(HaveOccurred())
-				deploy, err = deployment.CreateWindowsDeployDeleteIfExist(deploymentPrefix, windowsImages.IIS, deploymentName, deploymentNamespace, "")
-				Expect(err).NotTo(HaveOccurred())
-				testPortForward()
+				if common.IsKubernetesVersionGe(eng.ExpandedDefinition.Properties.OrchestratorProfile.OrchestratorVersion, "1.15.0") {
+					windowsImages, err := eng.GetWindowsTestImages()
+					Expect(err).NotTo(HaveOccurred())
+					deploy, err = deployment.CreateWindowsDeployDeleteIfExist(deploymentPrefix, windowsImages.IIS, deploymentName, deploymentNamespace, "")
+					Expect(err).NotTo(HaveOccurred())
+					testPortForward()
+				} else {
+					Skip("kubectl port-forward only works on Windows nodes with Kubernetes 1.15+")
+					// Reference: https://github.com/kubernetes/kubernetes/pull/75479
+				}
 			}
 		})
 

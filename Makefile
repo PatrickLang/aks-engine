@@ -137,7 +137,7 @@ endif
 ginkgoBuild: generate
 	ginkgo build test/e2e/kubernetes
 
-test: generate k8sDryRun
+test: generate gingkgoBuild
 	ginkgo -skipPackage test/e2e/dcos,test/e2e/kubernetes -failFast -r .
 
 .PHONY: test-style
