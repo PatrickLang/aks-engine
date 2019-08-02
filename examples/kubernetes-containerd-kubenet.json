@@ -5,8 +5,8 @@
       "orchestratorType": "Kubernetes",
       "orchestratorRelease": "1.15",
       "kubernetesConfig": {
-        "networkPlugin": "flannel",
-        "containerRuntime": "kubenet",
+        "networkPlugin": "kubenet",
+        "containerRuntime": "containerd",
         "addons": [
           {
             "name": "tiller",
